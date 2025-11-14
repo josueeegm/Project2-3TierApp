@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gio-postgres
+  namespace: gio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gio-postgres
+  template:
+    metadata:
+      labels:
+        app: gio-postgres
+    spec:
+      containers:
+      - name: gio-postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_DB
+
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: gio-postgres-storage
+
+      volumes:
+      - name: gio-postgres-storage
+        persistentVolumeClaim:
+          claimName: gio-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gio-postgres-svc
+  namespace: gio
+spec:
+  selector:
+    app: gio-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

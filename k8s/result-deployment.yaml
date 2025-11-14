@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gio-result
+  namespace: gio
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gio-result
+  template:
+    metadata:
+      labels:
+        app: gio-result
+    spec:
+      containers:
+      - name: result
+        image: josueegm/result:latest
+        ports:
+        - containerPort: 5001
+        env:
+        # ---- Postgres connection ----
+        - name: DATABASE_HOST
+          value: gio-postgres-svc
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_DB
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gio-result-svc
+  namespace: gio
+spec:
+  selector:
+    app: gio-result
+  ports:
+    - port: 5001
+      targetPort: 5001
+  type: ClusterIP

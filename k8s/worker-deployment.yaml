@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gio-worker
+  namespace: gio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gio-worker
+  template:
+    metadata:
+      labels:
+        app: gio-worker
+    spec:
+      containers:
+      - name: gio-worker
+        image: josueegm/worker:latest
+        ports:
+        - containerPort: 80
+        env:
+        # ---- Redis ----
+        - name: REDIS_HOST
+          value: gio-redis-svc
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: REDIS_PASSWORD
+
+        # ---- Postgres ----
+        - name: POSTGRES_HOST
+          value: gio-postgres-svc
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_DB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gio-worker-svc
+  namespace: gio
+spec:
+  selector:
+    app: gio-worker
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

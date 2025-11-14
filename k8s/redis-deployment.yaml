@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gio-redis
+  namespace: gio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gio-redis
+  template:
+    metadata:
+      labels:
+        app: gio-redis
+    spec:
+      containers:
+      - name: gio-redis
+        image: redis:7
+        args: ["redis-server", "--appendonly", "yes"]
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: REDIS_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gio-redis-svc
+  namespace: gio
+spec:
+  selector:
+    app: gio-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP
