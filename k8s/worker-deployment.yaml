@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gio-worker
+  name: gio-deployment-worker
   namespace: gio
 spec:
   replicas: 1
@@ -18,34 +18,29 @@ spec:
         image: josueegm/worker:latest
         ports:
         - containerPort: 80
-        env:
-        # ---- Redis ----
-        - name: REDIS_HOST
-          value: gio-redis-svc
-        - name: REDIS_PORT
-          value: "6379"
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: redis-credentials
-              key: REDIS_PASSWORD
 
-        # ---- Postgres ----
-        - name: POSTGRES_HOST
-          value: gio-postgres-svc
-        - name: POSTGRES_PORT
-          value: "5432"
-        - name: POSTGRES_USER
+        env:
+        # ---- Redis connection ----
+        - name: REDIS_HOST
+          value: gio-svc-redis
+
+        # ---- Postgres connection ----
+        - name: DB_HOST
+          value: gio-svc-postgres
+
+        - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
+
+        - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
+
+        - name: DB_NAME
           valueFrom:
             secretKeyRef:
               name: db-credentials
@@ -54,7 +49,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gio-worker-svc
+  name: gio-svc-worker
   namespace: gio
 spec:
   selector:

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gio-redis
+  name: gio-deployment-redis
   namespace: gio
 spec:
   replicas: 1
@@ -29,7 +29,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gio-redis-svc
+  name: gio-svc-redis
   namespace: gio
 spec:
   selector:

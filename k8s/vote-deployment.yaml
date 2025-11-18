@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gio-vote
+  name: gio-deployment-vote
   namespace: gio
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: gio-vote
@@ -20,18 +20,18 @@ spec:
         - containerPort: 80
         env:
         - name: REDIS_HOST
-          value: gio-redis-svc      # nombre real del Service de Redis
+          value: gio-svc-redis
         - name: REDIS_PORT
           value: "6379"
         readinessProbe:
           httpGet:
-            path: /health
+            path: /
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /health
+            path: /
             port: 80
           initialDelaySeconds: 15
           periodSeconds: 20
@@ -39,7 +39,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gio-vote-svc
+  name: gio-svc-vote
   namespace: gio
 spec:
   selector:

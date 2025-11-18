@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gio-result
+  name: gio-deployment-result
   namespace: gio
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: gio-result
@@ -14,40 +14,47 @@ spec:
         app: gio-result
     spec:
       containers:
-      - name: result
+      - name: gio-result
         image: josueegm/result:latest
         ports:
         - containerPort: 5001
+
         env:
         # ---- Postgres connection ----
-        - name: DATABASE_HOST
-          value: gio-postgres-svc
-        - name: DATABASE_PORT
+        - name: PG_HOST
+          value: gio-svc-postgres
+
+        - name: PG_PORT
           value: "5432"
-        - name: POSTGRES_USER
+
+        - name: PG_USER
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
+
+        - name: PG_PASSWORD
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
+
+        - name: PG_DATABASE
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_DB
+
         readinessProbe:
           httpGet:
-            path: /health
+            path: /
             port: 5001
           initialDelaySeconds: 5
           periodSeconds: 10
+
         livenessProbe:
           httpGet:
-            path: /health
+            path: /
             port: 5001
           initialDelaySeconds: 15
           periodSeconds: 20
@@ -55,7 +62,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gio-result-svc
+  name: gio-svc-result
   namespace: gio
 spec:
   selector:

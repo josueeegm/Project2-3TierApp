@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gio-postgres
+  name: gio-deployment-postgres
   namespace: gio
 spec:
   replicas: 1
@@ -13,27 +13,49 @@ spec:
       labels:
         app: gio-postgres
     spec:
+
+      # --- Init container para preparar el directorio de datos ---
+      initContainers:
+      - name: init-postgres-data
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - |
+            mkdir -p /var/lib/postgresql/data/pgdata
+            chown -R 999:999 /var/lib/postgresql/data
+        volumeMounts:
+        - name: gio-postgres-storage
+          mountPath: /var/lib/postgresql/data
+
       containers:
       - name: gio-postgres
         image: postgres:15
         ports:
         - containerPort: 5432
+
         env:
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_USER
+
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_PASSWORD
+
         - name: POSTGRES_DB
           valueFrom:
             secretKeyRef:
               name: db-credentials
               key: POSTGRES_DB
+
+        # *** PGDATA corregido ***
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
 
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
@@ -42,12 +64,14 @@ spec:
       volumes:
       - name: gio-postgres-storage
         persistentVolumeClaim:
-          claimName: gio-postgres-pvc
+          claimName: gio-pvc-postgres
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: gio-postgres-svc
+  name: gio-svc-postgres
   namespace: gio
 spec:
   selector:
