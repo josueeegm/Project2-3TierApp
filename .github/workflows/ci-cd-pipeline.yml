@@ -1,0 +1,74 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # -------------------------
+    # 1. Login to Docker Hub
+    # -------------------------
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # -------------------------
+    # 2. Build & push Docker images
+    # -------------------------
+    - name: Build and push vote
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/vote:latest ./vote
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/vote:latest
+
+    - name: Build and push result
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/result:latest ./result
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/result:latest
+
+    - name: Build and push worker
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/worker:latest ./worker
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/worker:latest
+
+    # -------------------------
+    # 3. Configure AWS
+    # -------------------------
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-1
+
+    # -------------------------
+    # 4. Install kubectl
+    # -------------------------
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+
+    # -------------------------
+    # 5. Update kubeconfig for EKS
+    # -------------------------
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --region us-west-1 --name ironhack-main-2
+
+    # -------------------------
+    # 6. Deploy to Kubernetes
+    # -------------------------
+    - name: Apply Kubernetes manifests
+      run: |
+        kubectl apply -f k8s/
