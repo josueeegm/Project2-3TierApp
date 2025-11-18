@@ -17,7 +17,7 @@ spec:
       - name: gio-result
         image: josueegm/result:latest
         ports:
-        - containerPort: 5001
+        - containerPort: 80
         env:
         - name: PG_HOST
           value: gio-svc-postgres
@@ -48,6 +48,6 @@ spec:
   selector:
     app: gio-result
   ports:
-    - port: 5001
-      targetPort: 5001
+    - port: 80
+      targetPort: 80
   type: ClusterIP

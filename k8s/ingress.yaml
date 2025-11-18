@@ -4,23 +4,28 @@ metadata:
   name: gio-ingress-voting-app
   namespace: gio
   annotations:
-
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: "nginx"
+  ingressClassName: nginx
   rules:
-  - http:
+  - host: gio.vote.diogohack.shop
+    http:
       paths:
-      - path: /gio/vote
+      - path: /
         pathType: Prefix
         backend:
           service:
             name: gio-svc-vote
             port:
               number: 80
-      - path: /result
+
+  - host: gio.result.diogohack.shop
+    http:
+      paths:
+      - path: /
         pathType: Prefix
         backend:
           service:
             name: gio-svc-result
             port:
-              number: 5001
+              number: 80
