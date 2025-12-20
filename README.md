@@ -1,186 +1,200 @@
-# 🚀 Production-Grade 3-Tier Application Deployment on Amazon EKS with CI/CD
+🚀 Project 2 – Deploy a 3-Tier Application on Amazon EKS
 
-## Overview
+This project demonstrates how to deploy a production-like 3-tier microservices application on Amazon EKS (Elastic Kubernetes Service) using Kubernetes, Docker, and a fully automated CI/CD pipeline with GitHub Actions.
 
-This project demonstrates the **end-to-end deployment of a production-style, microservices-based 3-tier application** on **Amazon EKS (Elastic Kubernetes Service)**, fully automated through a **CI/CD pipeline using GitHub Actions**.
+The application is based on the classic Voting App, composed of multiple microservices written in different languages and connected through Redis and PostgreSQL.
 
-The solution reflects real-world DevOps and cloud-native practices, including containerization, Kubernetes orchestration, secure secret management, ingress routing, and continuous delivery to a managed Kubernetes cluster.
+🧩 Architecture Overview
 
----
+The application follows a 3-tier architecture:
 
-## Architecture
+Frontend
 
-The application follows a **distributed microservices architecture**, where each component is independently containerized and deployed.
+vote service (Python) – Voting interface
 
-### Application Components
-- **Vote Service (Python)** – User-facing voting interface
-- **Result Service (Node.js)** – Real-time results visualization
-- **Worker Service (.NET)** – Background vote processing
-- **Redis** – In-memory message broker
-- **PostgreSQL** – Persistent relational database
+result service (Node.js) – Displays results
 
-### Infrastructure & Tooling
-- **Amazon EKS** – Managed Kubernetes cluster
-- **Docker** – Containerization
-- **NGINX Ingress Controller** – HTTP routing
-- **GitHub Actions** – CI/CD automation
-- **Docker Hub** – Container image registry
+Backend
 
-### Data Flow
-Vote → Redis → Worker → PostgreSQL → Result
+worker service (.NET) – Processes votes
 
-yaml
-Copiar código
+Data Layer
 
----
+Redis – Temporary vote storage
 
-## Objectives
+PostgreSQL – Persistent database
 
-### 1. Kubernetes Deployment
-- Containerize all microservices
-- Deploy each service using Kubernetes **Deployments** and **Services**
-- Ensure inter-service communication via Kubernetes **internal DNS**
-- Avoid hardcoded IPs or environment-specific dependencies
+All services are containerized and deployed on Amazon EKS, with traffic routed using NGINX Ingress Controller.
 
-### 2. CI/CD Automation
-- Automatically build Docker images on code changes
-- Push images to a container registry
-- Deploy and update Kubernetes resources on EKS
-- Enable reproducible, zero-downtime deployments
+🎯 Project Goals
+Goal 1 – Kubernetes Deployment
 
----
+Containerize all microservices using Docker
 
-## Repository Structure
+Deploy them to an Amazon EKS cluster using Kubernetes manifests
 
+Ensure inter-service communication using Kubernetes DNS (no hardcoded IPs)
+
+Goal 2 – CI/CD Automation
+
+Build Docker images automatically
+
+Push images to a container registry (Docker Hub)
+
+Deploy updated manifests to EKS using GitHub Actions
+
+🛠️ Technologies Used
+
+AWS: EKS, IAM
+
+Kubernetes: Deployments, Services, Ingress, Secrets
+
+Docker
+
+GitHub Actions (CI/CD)
+
+Helm (NGINX Ingress Controller)
+
+Languages: Python, Node.js, .NET
+
+📁 Repository Structure
 .
+├── vote/
+├── result/
+├── worker/
 ├── K8s/
-│ ├── redis/
-│ ├── postgres/
-│ ├── vote/
-│ ├── result/
-│ ├── worker/
-│ └── ingress.yaml
-├── docker/
-│ ├── vote/
-│ ├── result/
-│ └── worker/
+│   ├── redis-deployment.yaml
+│   ├── postgres-deployment.yaml
+│   ├── vote-deployment.yaml
+│   ├── result-deployment.yaml
+│   ├── worker-deployment.yaml
+│   └── ingress.yaml
 ├── .github/
-│ └── workflows/
-│ └── ci-cd-pipeline.yml
+│   └── workflows/
+│       └── ci-cd-pipeline.yml
 └── README.md
 
-yaml
-Copiar código
+🚢 Deployment Steps
+1. Deploy Redis and PostgreSQL
 
----
+Redis and PostgreSQL are deployed as Kubernetes Deployments and Services.
+They are exposed internally within the cluster and accessed via service DNS names:
 
-## Kubernetes Design Considerations
+redis-service
+postgres-service
 
-- Each microservice runs in its own **Deployment**
-- Services are exposed internally using **ClusterIP**
-- Communication is performed via service DNS names, e.g.:
+2. Deploy Application Microservices
+
+Each microservice (vote, result, worker) has:
+
+A Deployment (container definition)
+
+A Service (internal communication)
+
+🔹 Services communicate using Kubernetes DNS, for example:
+
 redis-service.default.svc.cluster.local
 
-yaml
-Copiar código
-- This design ensures scalability, resilience, and portability across environments
 
----
+No IP addresses are hardcoded.
 
-## Ingress & Traffic Management
+3. Configure Ingress
 
-The application is exposed externally through an **NGINX Ingress Controller**, installed via Helm.
+Install NGINX Ingress Controller using Helm
 
-### Routing Rules
-| Path     | Service |
-|----------|--------|
-| `/vote`  | Vote Service |
-| `/result`| Result Service |
+Configure routing rules:
 
-This enables clean URL-based routing without exposing individual services.
+Path	Service
+/vote	vote
+/result	result
+🔄 CI/CD Pipeline (GitHub Actions)
 
----
+The CI/CD pipeline automates the entire deployment process.
 
-## CI/CD Pipeline (GitHub Actions)
+Pipeline Responsibilities
 
-The pipeline is triggered on pushes to the main branch and performs the following steps:
+Triggered on push to main branch
 
-1. Build Docker images for each microservice
-2. Push images to Docker Hub
-3. Configure AWS credentials securely via GitHub Secrets
-4. Authenticate to the EKS cluster
-5. Apply Kubernetes manifests using `kubectl`
+Builds Docker images for all microservices
 
-### AWS Credentials Configuration
-```yaml
+Pushes images to Docker Hub
+
+Authenticates with AWS
+
+Updates kubeconfig for EKS
+
+Applies Kubernetes manifests
+
+🔐 AWS Credentials Configuration
 - name: Configure AWS Credentials
-uses: aws-actions/configure-aws-credentials@v1
-with:
-  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  aws-region: eu-west-3
-This step allows the pipeline to securely interact with AWS services without exposing credentials in the repository.
+  uses: aws-actions/configure-aws-credentials@v1
+  with:
+    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    aws-region: eu-west-3
 
-EKS Authentication
-yaml
-Copiar código
-- name: Install eksctl
-  run: |
-    curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-    sudo mv /tmp/eksctl /usr/local/bin
 
-- name: Update Kubeconfig
-  run: eksctl utils write-kubeconfig --cluster <cluster-name> --region us-east-1
-These steps ensure the CI runner can authenticate and communicate with the target EKS cluster.
+Explanation:
+This step authenticates GitHub Actions with AWS using credentials stored securely as GitHub Secrets.
 
-Deployment to Kubernetes
-yaml
-Copiar código
-- name: Apply Kubernetes Manifests
-  run: kubectl apply -f K8s/
-Applies all Kubernetes resources declaratively, enabling idempotent deployments.
+⚙️ Install eksctl
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
 
-Validation & Operations
-Verify Workloads
-bash
-Copiar código
+
+Explanation:
+Installs eksctl, a CLI tool used to manage EKS clusters and generate kubeconfig files.
+
+☸️ Update Kubeconfig
+eksctl utils write-kubeconfig --cluster cluster-name --region us-east-1
+
+
+Explanation:
+Configures kubectl so GitHub Actions can communicate with the EKS cluster.
+
+📦 Apply Kubernetes Manifests
+kubectl apply -f K8s/
+
+
+Explanation:
+Deploys or updates all Kubernetes resources defined in the K8s/ directory.
+
+✅ Validation & Testing
+Check Deployments and Pods
 kubectl get deployments
 kubectl get pods
-Confirms that all services are running and healthy.
 
-Verify Ingress
-bash
-Copiar código
+
+Explanation:
+Verifies that all services are deployed and running correctly.
+
+Check Ingress
 kubectl get ingress
-Retrieves the external IP or DNS assigned to the application.
 
-Application Access
-Once the ingress is available:
 
-Vote Application
+Explanation:
+Displays the external IP or DNS assigned to the NGINX Ingress Controller.
 
-arduino
-Copiar código
+Access the Application
 http://<INGRESS_IP>/vote
-Results Application
-
-arduino
-Copiar código
 http://<INGRESS_IP>/result
-Votes submitted through the Vote service propagate through Redis, are processed by the Worker, persisted in PostgreSQL, and visualized in the Result service.
 
-Secrets Management
-Sensitive data is handled using Kubernetes Secrets, avoiding plaintext credentials in manifests.
 
-Create Database Credentials
-bash
-Copiar código
+You can cast votes and observe the full flow:
+
+Vote App → Redis → Worker → PostgreSQL → Result App
+
+🔐 Managing Secrets (Best Practices)
+Create Kubernetes Secrets
 kubectl create secret generic db-credentials \
   --from-literal=POSTGRES_USER=postgres \
-  --from-literal=POSTGRES_PASSWORD=strongPassword
-Inject Secrets into Deployments
-yaml
-Copiar código
+  --from-literal=POSTGRES_PASSWORD=someSecurePassword
+
+
+Explanation:
+Stores sensitive database credentials securely in Kubernetes instead of plaintext YAML files.
+
+Reference Secrets in Deployments
 env:
   - name: POSTGRES_USER
     valueFrom:
@@ -192,35 +206,23 @@ env:
       secretKeyRef:
         name: db-credentials
         key: POSTGRES_PASSWORD
-This approach aligns with security best practices for containerized workloads.
 
-Key Technologies
-Amazon EKS
 
-Kubernetes
+Explanation:
+Injects secret values into containers as environment variables at runtime.
 
-Docker
+📌 Key Learnings
 
-GitHub Actions
+Deploying microservices on Amazon EKS
 
-NGINX Ingress Controller
+Kubernetes networking and DNS-based service discovery
 
-Redis
+Ingress routing with NGINX
 
-PostgreSQL
+Secure secrets management
 
-Python, Node.js, .NET
+End-to-end CI/CD automation with GitHub Actions
 
-Outcome
-This project showcases practical expertise in:
+📄 License
 
-Designing and operating Kubernetes-based microservices
-
-Implementing production-grade CI/CD pipelines
-
-Managing cloud infrastructure on AWS
-
-Applying DevOps and cloud-native best practices
-
-It serves as a strong portfolio example for Cloud Engineer, DevOps Engineer, or Platform Engineer roles.
-
+This project is for educational and portfolio purposes.
